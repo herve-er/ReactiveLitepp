@@ -41,4 +41,30 @@
 *.dwo
 /.vs
 /cmake
-/out/build/x64-Debug
+/out/
+
+# Build directories
+build/
+build-*/
+
+# vcpkg
+vcpkg_installed/
+
+# Test results
+Testing/
+CTestTestfile.cmake
+
+# IDE files
+.vscode/
+.idea/
+*.user
+*.suo
+*.sln.docstates
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake

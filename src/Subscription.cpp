@@ -10,6 +10,7 @@ namespace ReactiveLitepp
         if (unsubscribeFunc) {
             unsubscribeFunc();
             unsubscribeFunc = nullptr;
+            isValidFunc = nullptr;
         }
     }
 
