@@ -2,6 +2,8 @@
 #include <functional>
 #include <unordered_map>
 #include <memory>
+#include <vector>
+#include <mutex>
 #include "Subscription.h"
 #include "ScopedSubscription.h"
 
@@ -36,23 +38,38 @@ namespace ReactiveLitepp
     class Event<Args...>::Impl {
     public:
         int Add(Handler h) {
+            std::lock_guard<std::mutex> lock(mutex);
             int id = ++currentId;
             handlers[id] = std::move(h);
             return id;
         }
 
         void Remove(int id) {
+            std::lock_guard<std::mutex> lock(mutex);
             handlers.erase(id);
         }
 
         void Notify(Args... args) {
-            for (auto& [id, handler] : handlers)
+            // Copy handlers under lock to avoid iterator invalidation and race conditions
+            std::vector<Handler> handlersCopy;
+            {
+                std::lock_guard<std::mutex> lock(mutex);
+                handlersCopy.reserve(handlers.size());
+                for (auto& [id, handler] : handlers) {
+                    handlersCopy.push_back(handler);
+                }
+            }
+            
+            // Call handlers without holding the lock to avoid deadlocks
+            for (auto& handler : handlersCopy) {
                 handler(args...);
+            }
         }
 
     private:
         std::unordered_map<int, Handler> handlers;
         int currentId = 0;
+        mutable std::mutex mutex;
     };
 
     // ==========================================
