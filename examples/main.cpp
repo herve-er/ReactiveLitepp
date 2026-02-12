@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <nameof.hpp>
 #include <ReactiveLitepp/Property.h>
 #include <ReactiveLitepp/ObservableObject.h>
 
@@ -28,7 +29,9 @@ public:
 			[this](std::string& value) { return value; },
 			[this](std::string& newValue, std::string& internalValue) {
 				std::cout << "Adress changing from '" << internalValue << "' to '" << newValue << "'\n";
+				NotifyPropertyChanging(nameof::nameof_member<&Person::Adress>());
 				internalValue = newValue;
+				NotifyPropertyChanged(nameof::nameof_member<&Person::Adress>());
 			}
 		);
 

@@ -1,6 +1,7 @@
 #pragma once
 #include "Event.h"
 
+
 namespace ReactiveLitepp
 {
 	struct PropertyChangeArgs {
@@ -26,7 +27,7 @@ namespace ReactiveLitepp
 		Event<ObservableObject&, PropertyChangedArgs> PropertyChanged;
 
 	protected:
-		void NotifyPropertyChanging();
-		void NotifyPropertyChanged();
+		void NotifyPropertyChanging(std::string_view propertyName);
+		void NotifyPropertyChanged(std::string_view propertyName);
 	};
 }

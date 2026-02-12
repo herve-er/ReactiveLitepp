@@ -162,8 +162,8 @@ namespace ReactiveLitepp
 	PropType Property<PropType>::Get() const
 	{
 		if (_get) return _get();
-		if (_autoGet) return _autoGet(*_value);
-		throw;
+		else if (_autoGet) return _autoGet(*_value);
+		else throw;
 	}
 
 	template<typename PropType>
@@ -171,7 +171,7 @@ namespace ReactiveLitepp
 	{
 		if (_set) _set(value);
 		else if (_autoGet) _autoSet(value, *_value);
-		throw;
+		else throw;
 	}
 
 	template<typename PropType>
