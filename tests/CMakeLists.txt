@@ -8,6 +8,11 @@ add_executable(ReactiveLitepp_tests
     test_event_multithreading.cpp
     test_event_lifetime.cpp
     test_event_stress.cpp
+    test_property_basic.cpp
+    test_property_observability.cpp
+    test_property_advanced.cpp
+    test_property_edge_cases.cpp
+    test_observable_object.cpp
 )
 
 target_link_libraries(ReactiveLitepp_tests PRIVATE 
@@ -15,7 +20,7 @@ target_link_libraries(ReactiveLitepp_tests PRIVATE
     Catch2::Catch2WithMain
 )
 
-target_compile_features(ReactiveLitepp_tests PRIVATE cxx_std_17)
+target_compile_features(ReactiveLitepp_tests PRIVATE cxx_std_20)
 
 # Enable testing
 include(CTest)

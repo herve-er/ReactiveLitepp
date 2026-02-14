@@ -45,5 +45,31 @@ namespace ReactiveLitepp
 			PropertyChanged.Notify(*this, args);
 			return;
 		}
+
+		template <auto Member, typename T>
+		auto SetPropertyValue(T&& value) -> std::enable_if_t<std::is_member_pointer_v<decltype(Member)>, bool>
+		{
+			auto& field = this->*Member;
+
+			if (field == value)
+				return false;
+			NotifyPropertyChanging<Member>();
+			field = std::forward<T>(value);
+			NotifyPropertyChanged<Member>();
+
+			return true;
+		}
+
+		template <auto Member, typename T>
+		bool SetPropertyValue(T& field, const T& value)
+		{
+			if (field == value)
+				return false;
+
+			NotifyPropertyChanging<Member>();
+			field = value;
+			NotifyPropertyChanged<Member>();
+			return true;
+		}
 	};
 }
