@@ -125,6 +125,19 @@ namespace ReactiveLitepp
 		 */
 		Property& operator=(const PropType& value);
 
+		/**
+		 * @brief Stream output operator for Property
+		 *
+		 * Allows the property value to be printed via std::cout or similar.
+		 *
+		 * @param os Output stream
+		 * @param prop The Property to output
+		 * @return Reference to the output stream
+		 */
+		friend std::ostream& operator<<(std::ostream& os, const Property& prop) {
+			os << prop.Get();
+			return os;
+		}
 	private:
 		Getter<PropType> _get;              ///< The getter function
 		Setter<PropType> _set;              ///< The setter function

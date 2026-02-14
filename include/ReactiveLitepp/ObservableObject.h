@@ -1,6 +1,6 @@
 #pragma once
 #include "Event.h"
-
+#include <nameof.hpp>
 
 namespace ReactiveLitepp
 {
@@ -29,5 +29,21 @@ namespace ReactiveLitepp
 	protected:
 		void NotifyPropertyChanging(std::string_view propertyName);
 		void NotifyPropertyChanged(std::string_view propertyName);
+
+		template <auto V>
+		auto NotifyPropertyChanging() -> std::enable_if_t<std::is_member_pointer_v<decltype(V)>>
+		{
+			PropertyChangingArgs args = PropertyChangingArgs(std::string(nameof::nameof_member<V>()));
+			PropertyChanging.Notify(*this, args);
+			return;
+		}
+
+		template <auto V>
+		auto NotifyPropertyChanged() -> std::enable_if_t<std::is_member_pointer_v<decltype(V)>>
+		{
+			PropertyChangedArgs args = PropertyChangedArgs(std::string(nameof::nameof_member<V>()));
+			PropertyChanged.Notify(*this, args);
+			return;
+		}
 	};
 }

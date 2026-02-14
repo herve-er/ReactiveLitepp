@@ -2,7 +2,7 @@
 
 namespace ReactiveLitepp
 {
-	void ReactiveLitepp::ObservableObject::NotifyPropertyChanging(std::string_view propName)
+	void ObservableObject::NotifyPropertyChanging(std::string_view propName)
 	{
 		PropertyChangingArgs args = PropertyChangingArgs(std::string(propName));
 		PropertyChanging.Notify(*this, args);

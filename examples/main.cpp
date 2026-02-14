@@ -19,7 +19,9 @@ public:
 		[this]() { return _email; },
 		[this](std::string& value) {
 			std::cout << "Email changing from '" << _email << "' to '" << value << "'\n";
+			NotifyPropertyChanging<&Person::Email>();
 			_email = value;
+			NotifyPropertyChanged<&Person::Email>();
 		}
 	);
 
@@ -29,9 +31,9 @@ public:
 			[this](std::string& value) { return value; },
 			[this](std::string& newValue, std::string& internalValue) {
 				std::cout << "Adress changing from '" << internalValue << "' to '" << newValue << "'\n";
-				NotifyPropertyChanging(nameof::nameof_member<&Person::Adress>());
+				NotifyPropertyChanging<&Person::Adress>();
 				internalValue = newValue;
-				NotifyPropertyChanged(nameof::nameof_member<&Person::Adress>());
+				NotifyPropertyChanged<&Person::Adress>();
 			}
 		);
 
@@ -55,7 +57,7 @@ public:
 				std::cout << "Warning: Negative balance not allowed! Keeping current value.\n";
 				return;
 			}
-			std::cout << "Balance updated: $" << _balance << " -> $" << value << "\n";
+			std::cout << "Balance updated: $" << _balance << " -> $" << value << std::endl;
 			_balance = value;
 		}
 	) {
@@ -71,63 +73,71 @@ int main() {
 
 	// Test 1: Auto get/set (internal storage)
 	std::cout << "--- Test 1: Auto Get/Set (Internal Storage) ---\n";
-	Person person;
 
-	std::cout << "Initial Name: " << person.Name.Get() << "\n";
-	std::cout << "Initial Age: " << person.Age.Get() << "\n";
+	Person person;
+	person.PropertyChanged += [](ObservableObject& obj, PropertyChangedArgs args) {
+		std::cout << "The propery: " << args.PropertyName() << " changed" << std::endl;
+		};
+	person.PropertyChanging += [](ObservableObject& obj, PropertyChangingArgs args) {
+		std::cout << "The propery: " << args.PropertyName() << " is changing" << std::endl;
+		};
+
+	std::cout << "Initial Name: " << person.Name << std::endl;
+	std::cout << "Initial Age: " << person.Age << std::endl;
 
 	// Using Set method
 	person.Name.Set("Jane Smith");
 	person.Age.Set(30);
 
-	std::cout << "After Set - Name: " << person.Name.Get() << "\n";
-	std::cout << "After Set - Age: " << person.Age.Get() << "\n";
+	std::cout << "After Set - Name: " << person.Name << std::endl;
+	std::cout << "After Set - Age: " << person.Age << std::endl;
 
 	// Using assignment operator
 	person.Name = "Bob Johnson";
 	person.Age = 35;
 
-	std::cout << "After Assignment - Name: " << person.Name.Get() << "\n";
-	std::cout << "After Assignment - Age: " << person.Age.Get() << "\n";
+	std::cout << "After Assignment - Name: " << person.Name << std::endl;
+	std::cout << "After Assignment - Age: " << person.Age << std::endl;
 
 	// Using implicit conversion
-	std::string name = person.Name;
 	int age = person.Age;
 
-	std::cout << "Using Implicit Conversion - Name: " << name << ", Age: " << age << "\n\n";
+	std::cout << "Using Implicit Conversion - Name: " << person.Name << ", Age: " << age << "\n\n";
 
 	// Test 2: Custom get/set with logging
 	std::cout << "--- Test 2: Custom Get/Set with Logging ---\n";
-	std::cout << "Initial Email: " << person.Email.Get() << "\n";
+	std::cout << "Initial Email: " << person.Email << std::endl;
 
 	person.Email.Set("jane.smith@example.com");
-	std::cout << "Current Email: " << person.Email.Get() << "\n";
+	std::cout << "Current Email: " << person.Email << std::endl;
 
 	person.Email = "bob.johnson@example.com";
-	std::cout << "Current Email: " << person.Email.Get() << "\n\n";
+	std::cout << "Current Email: " << person.Email << "\n\n";
 
 	// Test 2b: Custom get/set with logging
 	std::cout << "--- Test 2: Custom Get/Set with Logging ---\n";
-	std::cout << "Initial Email: " << person.Email.Get() << "\n";
+	std::cout << "Initial Adress: " << person.Email << std::endl;
+
+	
 
 	person.Adress.Set("01 av de France, Paris");
-	std::cout << "Current Adress: " << person.Adress.Get() << "\n";
+	std::cout << "Current Adress: " << person.Adress << std::endl;
 
-	person.Adress.Set("88 av de France, Paris");
-	std::cout << "Current Adress: " << person.Adress.Get() << "\n\n";
+	person.Adress = "88 av de France, Paris";
+	std::cout << "Current Adress: " << person.Adress << "\n\n";
 
 	// Test 3: Custom get/set with validation
 	std::cout << "--- Test 3: Custom Get/Set with Validation ---\n";
 	Account account;
 
-	std::cout << "Initial Balance: $" << account.Balance.Get() << "\n";
+	std::cout << "Initial Balance: $" << account.Balance << std::endl;
 
 	account.Balance = 100.50;
 	account.Balance = 250.75;
 
 	// This should trigger validation error
 	account.Balance = -50.0;
-	std::cout << "Final Balance: $" << account.Balance.Get() << "\n\n";
+	std::cout << "Final Balance: $" << account.Balance << "\n\n";
 
 	// Test 4: Using properties in expressions
 	std::cout << "--- Test 4: Using Properties in Expressions ---\n";
@@ -135,14 +145,14 @@ int main() {
 	Property<int> y = int(20);
 
 	int sum = x + y;
-	int product = x.Get() * y.Get();
+	int product = x * y;
 
-	std::cout << "x = " << x.Get() << ", y = " << y.Get() << "\n";
-	std::cout << "Sum: " << sum << "\n";
-	std::cout << "Product: " << product << "\n";
+	std::cout << "x = " << x << ", y = " << y << std::endl;
+	std::cout << "Sum: " << sum << std::endl;
+	std::cout << "Product: " << product << std::endl;
 
 	x = sum;
-	std::cout << "After x = sum: x = " << x.Get() << "\n\n";
+	std::cout << "After x = sum: x = " << x << "\n\n";
 
 	std::cout << "=== All Tests Complete ===\n";
 	return 0;
