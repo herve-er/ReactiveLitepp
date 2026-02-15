@@ -47,10 +47,22 @@ namespace ReactiveLitepp
 			return;
 		}
 
-		template <auto Member, typename T>
-		bool SetPropertyValue(Property<T>& field, const T& value)
+		template<typename T>
+		struct member_pointer_traits;
+
+		template<typename Class, typename MemberType>
+		struct member_pointer_traits<MemberType Class::*> {
+			using type = MemberType;
+		};
+
+		template<auto Member>
+		using property_value_t =
+			typename member_pointer_traits<decltype(Member)>::type::value_type;
+
+		template<auto Member>
+		bool SetPropertyValueAndNotify(property_value_t<Member>& field, const property_value_t<Member>& value)
 		{
-			if (field.Get() == value)
+			if (field == value)
 				return false;
 
 			NotifyPropertyChanging<Member>();

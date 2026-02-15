@@ -27,37 +27,19 @@ namespace ReactiveLitepp
 	using Setter = std::function<void(PropType&)>;
 
 	/**
-	 * @brief Function type for property getter operations
-	 * @tparam PropType The type of the property value
-	 */
-	template<typename PropType>
-	using AutoGetter = std::function<PropType(PropType& /*internal value*/)>;
-
-	/**
-	 * @brief Function type for property setter operations
-	 * @tparam PropType The type of the property value
-	 */
-	template<typename PropType>
-	using AutoSetter = std::function<void(PropType& /*new value*/, PropType& /*internal value*/)>;
-
-	/**
 	 * @brief A reactive property wrapper that supports custom getter/setter logic
 	 *
 	 * The Property class provides a flexible way to encapsulate values with custom
-	 * get/set behavior, or to store values internally with automatic getter/setter
-	 * generation. It supports implicit conversion and assignment operators for
+	 * get/set behavior. It supports implicit conversion and assignment operators for
 	 * natural usage syntax.
 	 *
 	 * @tparam PropType The type of the property value
-	 * @tparam ConstructorArgs Variadic template parameters for constructing the internal value
 	 *
 	 * Usage examples:
 	 * @code
 	 * // Custom getter/setter
 	 * Property<int> prop([&](){ return _value; }, [&](int& v){ _value = v; });
 	 *
-	 * // Internal value storage with custom constructor args
-	 * Property<std::string> name("DefaultName");
 	 *
 	 * // Using the property
 	 * prop = 42;              // Uses operator=
@@ -69,29 +51,15 @@ namespace ReactiveLitepp
 	template<typename PropType>
 	class Property {
 	public:
+		using value_type = PropType;
+
+
 		/**
 		 * @brief Constructs a Property with custom getter and setter functions
 		 * @param get Function to retrieve the property value
 		 * @param set Function to update the property value
 		 */
 		Property(Getter<PropType> get, Setter<PropType> set);
-
-		/**
-		 * @brief Constructs a Property with custom getter and setter functions
-		 * @param get Function to retrieve the property value
-		 * @param set Function to update the property value
-		 */
-		Property(AutoGetter<PropType> get, AutoSetter<PropType> set);
-
-		/**
-		 * @brief Constructs a Property with internal value storage
-		 *
-		 * Creates an internal value initialized with the provided constructor arguments.
-		 * Automatically generates getter and setter functions that work with the internal value.
-		 *
-		 * @param args Constructor arguments forwarded to PropType's constructor
-		 */
-		Property(const PropType& initialValue);
 
 		/**
 		 * @brief Retrieves the current property value
@@ -126,6 +94,18 @@ namespace ReactiveLitepp
 		Property& operator=(const PropType& value);
 
 		/**
+		 * @brief Equality operator for comparing the property value
+		 *
+		 * Allows natural comparison syntax to check whether the property
+		 * currently holds the same value as the provided one.
+		 *
+		 * @param value The value to compare against the property.
+		 * @return true if the property value is equal to @p value,
+		 *         false otherwise.
+		 */
+		bool operator==(const PropType& value) const;
+
+		/**
 		 * @brief Stream output operator for Property
 		 *
 		 * Allows the property value to be printed via std::cout or similar.
@@ -138,12 +118,10 @@ namespace ReactiveLitepp
 			os << prop.Get();
 			return os;
 		}
+
 	private:
 		Getter<PropType> _get;              ///< The getter function
 		Setter<PropType> _set;              ///< The setter function
-		AutoGetter<PropType> _autoGet;
-		AutoSetter<PropType> _autoSet;
-		std::unique_ptr<PropType> _value;   ///< Internal value storage (when not using custom getter/setter)
 	};
 
 	// ==========================================
@@ -157,25 +135,9 @@ namespace ReactiveLitepp
 	}
 
 	template<typename PropType>
-	Property<PropType>::Property(AutoGetter<PropType> get, AutoSetter<PropType> set)
-		: _autoGet(std::move(get)), _autoSet(std::move(set))
-	{
-		_value = std::make_unique<PropType>();
-	}
-
-	template<typename PropType>
-	inline Property<PropType>::Property(const PropType& initialValue)
-	{
-		_value = std::make_unique<PropType>(initialValue);
-		_get = [this]() { return *_value; };
-		_set = [this](PropType& val) { *_value = val; };
-	}
-
-	template<typename PropType>
 	PropType Property<PropType>::Get() const
 	{
 		if (_get) return _get();
-		else if (_autoGet) return _autoGet(*_value);
 		else throw;
 	}
 
@@ -183,7 +145,6 @@ namespace ReactiveLitepp
 	void Property<PropType>::Set(PropType value)
 	{
 		if (_set) _set(value);
-		else if (_autoGet) _autoSet(value, *_value);
 		else throw;
 	}
 
@@ -198,5 +159,11 @@ namespace ReactiveLitepp
 	{
 		Set(value);
 		return *this;
+	}
+
+	template<typename PropType>
+	inline bool Property<PropType>::operator==(const PropType& value) const
+	{
+		return Get() == value;
 	}
 }

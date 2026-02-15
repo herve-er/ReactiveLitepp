@@ -24,7 +24,7 @@ void DemonstrateEvents() {
 
 	auto sub1 = messageEvent.Subscribe([](const std::string& msg) {
 		std::cout << "  Subscriber 1 received: " << msg << "\n";
-	});
+		});
 
 	messageEvent.Notify("Hello, World!");
 
@@ -34,7 +34,7 @@ void DemonstrateEvents() {
 
 	auto sub2 = dataEvent.Subscribe([](const std::string& name, int count, double value) {
 		std::cout << "  Data: " << name << ", Count: " << count << ", Value: " << value << "\n";
-	});
+		});
 
 	dataEvent.Notify("Temperature", 5, 23.7);
 
@@ -44,11 +44,11 @@ void DemonstrateEvents() {
 
 	auto subA = numberEvent.Subscribe([](int n) {
 		std::cout << "  Subscriber A: Square = " << (n * n) << "\n";
-	});
+		});
 
 	auto subB = numberEvent.Subscribe([](int n) {
 		std::cout << "  Subscriber B: Double = " << (n * 2) << "\n";
-	});
+		});
 
 	numberEvent.Notify(5);
 
@@ -66,7 +66,7 @@ void DemonstrateEvents() {
 	{
 		auto scopedSub = numberEvent.SubscribeScoped([](int n) {
 			std::cout << "  Scoped subscriber: Triple = " << (n * 3) << "\n";
-		});
+			});
 
 		std::cout << "  Inside scope:\n";
 		numberEvent.Notify(4);
@@ -85,10 +85,22 @@ void DemonstrateProperties() {
 	std::cout << "SECTION 2: Properties - Reactive Value Wrappers\n";
 	std::cout << std::string(80, '=') << "\n\n";
 
-	// 2.1 Property with auto storage (simplest usage)
-	std::cout << "--- 2.1 Property with Auto Storage ---\n";
-	Property<int> age = 25;
-	Property<std::string> name = std::string("Alice");
+	// 2.1 Property with custom getter/setter (backing field required)
+	std::cout << "--- 2.1 Property with Custom Getter/Setter ---\n";
+
+	// All properties require a backing field
+	int ageValue = 25;
+	std::string nameValue = "Alice";
+
+	Property<int> age(
+		[&]() { return ageValue; },
+		[&](int& value) { ageValue = value; }
+	);
+
+	Property<std::string> name(
+		[&]() { return nameValue; },
+		[&](std::string& value) { nameValue = value; }
+	);
 
 	std::cout << "  Name: " << name << ", Age: " << age << "\n";
 
@@ -104,13 +116,13 @@ void DemonstrateProperties() {
 	int doubled = age * 2;
 	std::cout << "  Age * 2 = " << doubled << "\n";
 
-	// 2.2 Property with custom getter/setter
-	std::cout << "\n--- 2.2 Property with Custom Getter/Setter ---\n";
+	// 2.2 Property with custom logic in setter
+	std::cout << "\n--- 2.2 Property with Custom Logic ---\n";
 	double celsius = 0.0;
 
 	Property<double> temperature(
-		[&]() { return celsius; },  // Getter
-		[&](double& value) {        // Setter
+		[&]() { return celsius; },
+		[&](double& value) {
 			std::cout << "  Temperature changing: " << celsius << "C -> " << value << "C\n";
 			celsius = value;
 		}
@@ -147,14 +159,16 @@ void DemonstrateProperties() {
 	validatedScore = 150;  // Will be clamped
 	std::cout << "  Score after clamped update: " << validatedScore << "\n";
 
-	// 2.4 Property with AutoGetter/AutoSetter (internal storage + custom logic)
-	std::cout << "\n--- 2.4 Property with AutoGetter/AutoSetter ---\n";
+	// 2.4 Property with transformation
+	std::cout << "\n--- 2.4 Property with Transformation ---\n";
+	int percentageValue = 0;
+
 	Property<int> percentage(
-		[](int& internalValue) { return internalValue; },  // AutoGetter
-		[](int& newValue, int& internalValue) {            // AutoSetter
+		[&]() { return percentageValue; },
+		[&](int& newValue) {
 			// Clamp between 0 and 100
-			internalValue = std::max(0, std::min(100, newValue));
-			std::cout << "  Percentage set to: " << internalValue << "%\n";
+			percentageValue = std::max(0, std::min(100, newValue));
+			std::cout << "  Percentage set to: " << percentageValue << "%\n";
 		}
 	);
 
@@ -169,10 +183,29 @@ void DemonstrateProperties() {
 
 class Person : public ObservableObject {
 public:
-	// Simple properties with auto storage
-	Property<std::string> FirstName = std::string("John");
-	Property<std::string> LastName = std::string("Doe");
-	Property<int> Age = 30;
+	// All properties require backing fields
+	std::string _firstName;
+
+	Property<std::string> FirstName = Property<std::string>(
+		[this]() { return _firstName; },
+		[this](std::string& value) {
+			SetPropertyValueAndNotify<&Person::FirstName>(_firstName, value);
+		}
+	);
+
+	Property<std::string> LastName = Property<std::string>(
+		[this]() { return _lastName; },
+		[this](std::string& value) {
+			SetPropertyValueAndNotify<&Person::LastName>(_lastName, value);
+		}
+	);
+
+	Property<int> Age = Property<int>(
+		[this]() { return _age; },
+		[this](int& value) {
+			SetPropertyValueAndNotify<&Person::Age>(_age, value);
+		}
+	);
 
 	// Property with custom logic and notifications
 	Property<std::string> Email = Property<std::string>(
@@ -182,42 +215,45 @@ public:
 				std::cout << "  [X] Invalid email format!\n";
 				return;
 			}
-			NotifyPropertyChanging<&Person::Email>();
-			_email = value;
-			NotifyPropertyChanged<&Person::Email>();
+			SetPropertyValueAndNotify<&Person::Email>(_email, value);
 		}
 	);
 
-	// Property with AutoSetter and notifications
+	// Property with validation and notifications
 	Property<double> Salary = Property<double>(
-		[](double& value) { return value; },
-		[this](double& newValue, double& internalValue) {
+		[this]() { return _salary; },
+		[this](double& newValue) {
 			if (newValue < 0) return;  // Reject negative
-			NotifyPropertyChanging<&Person::Salary>();
-			internalValue = newValue;
-			NotifyPropertyChanged<&Person::Salary>();
+			SetPropertyValueAndNotify<&Person::Salary>(_salary, newValue);
 		}
 	);
 
-	// Using SetPropertyValue (recommended for simple properties)
+	// Constructor to initialize backing fields
+	Person() : _firstName("John"), _lastName("Doe"), _age(30), _salary(0.0) {}
+
+	// Using SetPropertyValueAndNotify (recommended for simple properties)
 	void SetAge(int newAge) {
-		if (SetPropertyValue<&Person::Age>(Age, newAge)) {
-			std::cout << "  [OK] Age updated to " << Age << "\n";
-		} else {
+		if (SetPropertyValueAndNotify<&Person::Age>(_age, newAge)) {
+			std::cout << "  [OK] Age updated to " << _age << "\n";
+		}
+		else {
 			std::cout << "  = Age unchanged (same value)\n";
 		}
 	}
 
 	void SetFirstName(const std::string& name) {
-		SetPropertyValue<&Person::FirstName>(FirstName, name);
+		SetPropertyValueAndNotify<&Person::FirstName>(_firstName, name);
 	}
 
 	std::string GetFullName() const {
-		return FirstName.Get() + " " + LastName.Get();
+		return _firstName + " " + _lastName;
 	}
 
 private:
+	std::string _lastName;
+	int _age;
 	std::string _email = "john.doe@example.com";
+	double _salary;
 };
 
 void DemonstrateObservableObject() {
@@ -251,8 +287,8 @@ void DemonstrateObservableObject() {
 	person.Email = "jane.smith@example.com";
 	person.Salary = 75000.0;
 
-	// 3.3 SetPropertyValue only fires events when value actually changes
-	std::cout << "\n--- 3.3 SetPropertyValue (Smart Change Detection) ---\n";
+	// 3.3 SetPropertyValueAndNotify only fires events when value actually changes
+	std::cout << "\n--- 3.3 SetPropertyValueAndNotify (Smart Change Detection) ---\n";
 	person.SetAge(30);  // Same value - no events
 	person.SetAge(31);  // Different value - events fire
 
@@ -274,20 +310,38 @@ void DemonstrateObservableObject() {
 
 class ShoppingCart : public ObservableObject {
 public:
-	Property<int> ItemCount = 0;
-	Property<double> TotalPrice = 0.0;
-	Property<bool> HasDiscount = false;
+	Property<int> ItemCount = Property<int>(
+		[this]() { return _itemCount; },
+		[this](int& value) {
+			SetPropertyValueAndNotify<&ShoppingCart::ItemCount>(_itemCount, value);
+		}
+	);
+
+	Property<double> TotalPrice = Property<double>(
+		[this]() { return _totalPrice; },
+		[this](double& value) {
+			SetPropertyValueAndNotify<&ShoppingCart::TotalPrice>(_totalPrice, value);
+		}
+	);
+
+	Property<bool> HasDiscount = Property<bool>(
+		[this]() { return _hasDiscount; },
+		[this](bool& value) {
+			if (SetPropertyValueAndNotify<&ShoppingCart::HasDiscount>(_hasDiscount, value)) {
+				std::cout << "  " << (value ? "[OK] Discount code applied!" : "[X] Discount removed") << "\n";
+			}
+		}
+	);
+
+	ShoppingCart() : _itemCount(0), _totalPrice(0.0), _hasDiscount(false) {}
 
 	void AddItem(const std::string& name, double price, int quantity = 1) {
 		std::cout << "  Adding: " << quantity << "x " << name << " ($" << price << " each)\n";
-
-		SetPropertyValue<&ShoppingCart::ItemCount>(ItemCount, ItemCount.Get() + quantity);
-
+		ItemCount = ItemCount + quantity;
 		double itemTotal = price * quantity;
-		double discount = HasDiscount ? itemTotal * 0.1 : 0.0;
+		double discount = _hasDiscount ? itemTotal * 0.1 : 0.0;
 		double finalPrice = itemTotal - discount;
-
-		SetPropertyValue<&ShoppingCart::TotalPrice>(TotalPrice, TotalPrice.Get() + finalPrice);
+		TotalPrice = TotalPrice + finalPrice;
 
 		if (discount > 0) {
 			std::cout << "    [DISCOUNT] Discount applied: -$" << discount << "\n";
@@ -295,17 +349,20 @@ public:
 	}
 
 	void ApplyDiscount(bool apply) {
-		if (SetPropertyValue<&ShoppingCart::HasDiscount>(HasDiscount, apply)) {
-			std::cout << "  " << (apply ? "[OK] Discount code applied!" : "[X] Discount removed") << "\n";
-		}
+		HasDiscount = apply;
 	}
 
 	void Clear() {
-		SetPropertyValue<&ShoppingCart::ItemCount>(ItemCount, 0);
-		SetPropertyValue<&ShoppingCart::TotalPrice>(TotalPrice, 0.0);
-		SetPropertyValue<&ShoppingCart::HasDiscount>(HasDiscount, false);
+		ItemCount = 0;
+		TotalPrice = 0;
+		HasDiscount = false;
 		std::cout << "  [CLEAR] Cart cleared\n";
 	}
+
+private:
+	int _itemCount;
+	double _totalPrice;
+	bool _hasDiscount;
 };
 
 void DemonstrateRealWorldExample() {
@@ -320,13 +377,15 @@ void DemonstrateRealWorldExample() {
 		std::cout << "  [UPDATE] Cart Update: ";
 		if (args.PropertyName() == "ItemCount") {
 			std::cout << "Items: " << cart.ItemCount;
-		} else if (args.PropertyName() == "TotalPrice") {
+		}
+		else if (args.PropertyName() == "TotalPrice") {
 			std::cout << std::fixed << std::setprecision(2) << "Total: $" << cart.TotalPrice;
-		} else if (args.PropertyName() == "HasDiscount") {
+		}
+		else if (args.PropertyName() == "HasDiscount") {
 			std::cout << "Discount: " << (cart.HasDiscount.Get() ? "Yes" : "No");
 		}
 		std::cout << "\n";
-	});
+		});
 
 	// Shopping scenario
 	std::cout << "--- Shopping Scenario ---\n";
@@ -340,7 +399,7 @@ void DemonstrateRealWorldExample() {
 	std::cout << "\n--- Final Cart ---\n";
 	std::cout << "  Items: " << cart.ItemCount << "\n";
 	std::cout << "  Total: $" << std::fixed << std::setprecision(2) << cart.TotalPrice << "\n";
-	std::cout << "  Discount Active: " << (cart.HasDiscount.Get() ? "Yes" : "No") << "\n";
+	std::cout << "  Discount Active: " << (cart.HasDiscount ? "Yes" : "No") << "\n";
 
 	std::cout << "\n";
 	cart.Clear();
@@ -357,8 +416,19 @@ void DemonstrateAdvancedPatterns() {
 
 	// 5.1 Computed Properties
 	std::cout << "--- 5.1 Computed Properties ---\n";
-	Property<double> width = 10.0;
-	Property<double> height = 5.0;
+
+	double widthValue = 10.0;
+	double heightValue = 5.0;
+
+	Property<double> width(
+		[&]() { return widthValue; },
+		[&](double& value) { widthValue = value; }
+	);
+
+	Property<double> height(
+		[&]() { return heightValue; },
+		[&](double& value) { heightValue = value; }
+	);
 
 	// Area is computed from width and height
 	double area = width * height;
@@ -395,11 +465,11 @@ void DemonstrateAdvancedPatterns() {
 	// Multiple logging destinations
 	auto consoleLogger = logger.Subscribe([](const std::string& msg) {
 		std::cout << "  [CONSOLE] " << msg << "\n";
-	});
+		});
 
 	auto fileLogger = logger.Subscribe([](const std::string& msg) {
 		std::cout << "  [FILE] (simulated) " << msg << "\n";
-	});
+		});
 
 	logger.Notify("Application started");
 	logger.Notify("User logged in");
@@ -428,7 +498,8 @@ int main() {
 		std::cout << "[OK] All demonstrations completed successfully!\n";
 		std::cout << std::string(80, '=') << "\n\n";
 
-	} catch (const std::exception& e) {
+	}
+	catch (const std::exception& e) {
 		std::cerr << "[ERROR] Error: " << e.what() << "\n";
 		return 1;
 	}

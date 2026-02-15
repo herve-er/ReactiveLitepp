@@ -8,10 +8,8 @@ add_executable(ReactiveLitepp_tests
     test_event_multithreading.cpp
     test_event_lifetime.cpp
     test_event_stress.cpp
-    test_property_basic.cpp
+    test_property.cpp
     test_property_observability.cpp
-    test_property_advanced.cpp
-    test_property_edge_cases.cpp
     test_observable_object.cpp
 )
 

@@ -8,8 +8,15 @@ using namespace ReactiveLitepp;
 
 class TestObservableClass : public ObservableObject {
 public:
-    Property<int> Age = 0;
-    Property<std::string> Name = std::string("Default");
+    Property<int> Age = Property<int>(
+        [this]() { return _age; },
+        [this](int& value) { _age = value; }
+    );
+    
+    Property<std::string> Name = Property<std::string>(
+        [this]() { return _name; },
+        [this](std::string& value) { _name = value; }
+    );
     
     Property<std::string> Email = Property<std::string>(
         [this]() { return _email; },
@@ -21,18 +28,23 @@ public:
     );
     
     Property<double> Balance = Property<double>(
-        [](double& internalValue) { return internalValue; },
-        [this](double& newValue, double& internalValue) {
+        [this]() { return _balance; },
+        [this](double& newValue) {
             NotifyPropertyChanging<&TestObservableClass::Balance>();
             if (newValue >= 0) {
-                internalValue = newValue;
+                _balance = newValue;
             }
             NotifyPropertyChanged<&TestObservableClass::Balance>();
         }
     );
     
+    TestObservableClass() : _age(0), _name("Default"), _balance(0.0) {}
+    
 private:
+    int _age;
+    std::string _name;
     std::string _email = "default@example.com";
+    double _balance;
 };
 
 TEST_CASE("Property with ObservableObject - Custom getter/setter", "[property][observable][custom]") {
@@ -51,7 +63,7 @@ TEST_CASE("Property with ObservableObject - Custom getter/setter", "[property][o
         
         REQUIRE(changeCount == 1);
         REQUIRE(changedPropertyName == "Email");
-        REQUIRE(obj.Email.Get() == "new@example.com");
+        REQUIRE(obj.Email == "new@example.com");
     }
     
     SECTION("PropertyChanging event fires before change") {

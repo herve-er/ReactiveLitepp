@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include <ReactiveLitepp/Property.h>
 #include <ReactiveLitepp/ObservableObject.h>
 #include <string>
 #include <vector>
@@ -7,106 +8,73 @@ using namespace ReactiveLitepp;
 
 class TestObservable : public ObservableObject {
 public:
-    int Age = 0;
-    std::string Name = "";
-    double Balance = 0.0;
-    bool IsActive = false;
-    std::vector<int> Numbers;
+    Property<int> Age = Property<int>(
+        [this]() { return _age; },
+        [this](int& value) {
+            ObservableObject::SetPropertyValueAndNotify<&TestObservable::Age>(_age, value);
+        }
+    );
     
-    // Public wrappers to test the protected SetPropertyValue method
-    bool SetAge(int value) {
-        return SetPropertyValue<&TestObservable::Age>(Age, value);
-    }
+    Property<std::string> Name = Property<std::string>(
+        [this]() { return _name; },
+        [this](std::string& value) {
+            ObservableObject::SetPropertyValueAndNotify<&TestObservable::Name>(_name, value);
+        }
+    );
     
-    bool SetName(std::string value) {
-        return SetPropertyValue<&TestObservable::Name>(Name ,value);
-    }
+    Property<double> Balance = Property<double>(
+        [this]() { return _balance; },
+        [this](double& value) {
+            ObservableObject::SetPropertyValueAndNotify<&TestObservable::Balance>(_balance, value);
+        }
+    );
     
-    bool SetBalance(double value) {
-        return SetPropertyValue<&TestObservable::Balance>(Balance, value);
-    }
+    Property<bool> IsActive = Property<bool>(
+        [this]() { return _isActive; },
+        [this](bool& value) {
+            ObservableObject::SetPropertyValueAndNotify<&TestObservable::IsActive>(_isActive, value);
+        }
+    );
     
-    bool SetIsActive(bool value) {
-        return SetPropertyValue<&TestObservable::IsActive>(IsActive, value);
-    }
+    Property<std::vector<int>> Numbers = Property<std::vector<int>>(
+        [this]() { return _numbers; },
+        [this](std::vector<int>& value) {
+            ObservableObject::SetPropertyValueAndNotify<&TestObservable::Numbers>(_numbers, value);
+        }
+    );
     
-    bool SetNumbers(std::vector<int> value) {
-        return SetPropertyValue<&TestObservable::Numbers>(Numbers, value);
-    }
+    TestObservable() : _age(0), _name(""), _balance(0.0), _isActive(false) {}
     
     // Expose NotifyPropertyChanged for testing
     using ObservableObject::NotifyPropertyChanged;
+
+private:
+    int _age;
+    std::string _name;
+    double _balance;
+    bool _isActive;
+    std::vector<int> _numbers;
 };
 
-TEST_CASE("SetPropertyValue basic functionality", "[observable][setpropertyvalue][basic]") {
-    SECTION("SetPropertyValue with integer - value changes") {
+TEST_CASE("ObservableObject basic functionality", "[observable][basic]") {
+    SECTION("Property values can be set and retrieved") {
         TestObservable obj;
-        obj.Age = 25;
         
-        bool result = obj.SetAge(30);
+        obj.Age = 30;
+        REQUIRE(obj.Age.Get() == 30);
         
-        REQUIRE(result == true);
-        REQUIRE(obj.Age == 30);
-    }
-    
-    SECTION("SetPropertyValue with integer - same value") {
-        TestObservable obj;
-        obj.Age = 25;
+        obj.Name = "Jane";
+        REQUIRE(obj.Name.Get() == "Jane");
         
-        bool result = obj.SetAge(25);
+        obj.Balance = 200.75;
+        REQUIRE(obj.Balance.Get() == 200.75);
         
-        REQUIRE(result == false);
-        REQUIRE(obj.Age == 25);
-    }
-    
-    SECTION("SetPropertyValue with string - value changes") {
-        TestObservable obj;
-        obj.Name = "John";
-        
-        bool result = obj.SetName("Jane");
-        
-        REQUIRE(result == true);
-        REQUIRE(obj.Name == "Jane");
-    }
-    
-    SECTION("SetPropertyValue with string - same value") {
-        TestObservable obj;
-        obj.Name = "John";
-        
-        bool result = obj.SetName("John");
-        
-        REQUIRE(result == false);
-        REQUIRE(obj.Name == "John");
-    }
-    
-    SECTION("SetPropertyValue with double") {
-        TestObservable obj;
-        obj.Balance = 100.50;
-        
-        bool result1 = obj.SetBalance(200.75);
-        REQUIRE(result1 == true);
-        REQUIRE(obj.Balance == 200.75);
-        
-        bool result2 = obj.SetBalance(200.75);
-        REQUIRE(result2 == false);
-        REQUIRE(obj.Balance == 200.75);
-    }
-    
-    SECTION("SetPropertyValue with boolean") {
-        TestObservable obj;
-        obj.IsActive = false;
-        
-        bool result1 = obj.SetIsActive(true);
-        REQUIRE(result1 == true);
-        REQUIRE(obj.IsActive == true);
-        
-        bool result2 = obj.SetIsActive(true);
-        REQUIRE(result2 == false);
-        REQUIRE(obj.IsActive == true);
+        obj.IsActive = true;
+        REQUIRE(obj.IsActive.Get() == true);
     }
 }
 
-TEST_CASE("SetPropertyValue event notifications", "[observable][setpropertyvalue][events]") {
+TEST_CASE("ObservableObject event notifications", "[observable][events]") {
     SECTION("PropertyChanging and PropertyChanged fire when value changes") {
         TestObservable obj;
         obj.Age = 10;
@@ -121,7 +89,7 @@ TEST_CASE("SetPropertyValue event notifications", "[observable][setpropertyvalue
             events.push_back("Changed:" + args.PropertyName());
         });
         
-        obj.SetAge(20);
+        obj.Age = 20;
         
         REQUIRE(events.size() == 2);
         REQUIRE(events[0] == "Changing:Age");
@@ -142,9 +110,8 @@ TEST_CASE("SetPropertyValue event notifications", "[observable][setpropertyvalue
             eventCount++;
         });
         
-        bool result = obj.SetAge(10);
+        obj.Age = 10;
         
-        REQUIRE(result == false);
         REQUIRE(eventCount == 0);  // No events fired
     }
     
@@ -158,17 +125,17 @@ TEST_CASE("SetPropertyValue event notifications", "[observable][setpropertyvalue
         
         auto subChanging = obj.PropertyChanging.Subscribe([&](ObservableObject& o, PropertyChangingArgs) {
             auto& testObj = static_cast<TestObservable&>(o);
-            capturedOldValue = testObj.Name;
+            capturedOldValue = testObj.Name.Get();
             order.push_back("Changing");
         });
         
         auto subChanged = obj.PropertyChanged.Subscribe([&](ObservableObject& o, PropertyChangedArgs) {
             auto& testObj = static_cast<TestObservable&>(o);
-            capturedNewValue = testObj.Name;
+            capturedNewValue = testObj.Name.Get();
             order.push_back("Changed");
         });
         
-        obj.SetName("After");
+        obj.Name = "After";
         
         REQUIRE(order.size() == 2);
         REQUIRE(order[0] == "Changing");
@@ -191,14 +158,14 @@ TEST_CASE("SetPropertyValue event notifications", "[observable][setpropertyvalue
             changedProperty = args.PropertyName();
         });
         
-        obj.SetAge(42);
+        obj.Age = 42;
         
         REQUIRE(changingProperty == "Age");
         REQUIRE(changedProperty == "Age");
     }
 }
 
-TEST_CASE("SetPropertyValue with multiple properties", "[observable][setpropertyvalue][multiple]") {
+TEST_CASE("ObservableObject with multiple properties", "[observable][multiple]") {
     SECTION("Multiple properties can be set independently") {
         TestObservable obj;
         
@@ -208,10 +175,10 @@ TEST_CASE("SetPropertyValue with multiple properties", "[observable][setproperty
             changedProperties.push_back(args.PropertyName());
         });
         
-        obj.SetAge(25);
-        obj.SetName("Alice");
-        obj.SetBalance(500.0);
-        obj.SetIsActive(true);
+        obj.Age = 25;
+        obj.Name = "Alice";
+        obj.Balance = 500.0;
+        obj.IsActive = true;
         
         REQUIRE(changedProperties.size() == 4);
         REQUIRE(changedProperties[0] == "Age");
@@ -219,10 +186,10 @@ TEST_CASE("SetPropertyValue with multiple properties", "[observable][setproperty
         REQUIRE(changedProperties[2] == "Balance");
         REQUIRE(changedProperties[3] == "IsActive");
         
-        REQUIRE(obj.Age == 25);
-        REQUIRE(obj.Name == "Alice");
-        REQUIRE(obj.Balance == 500.0);
-        REQUIRE(obj.IsActive == true);
+        REQUIRE(obj.Age.Get() == 25);
+        REQUIRE(obj.Name.Get() == "Alice");
+        REQUIRE(obj.Balance.Get() == 500.0);
+        REQUIRE(obj.IsActive.Get() == true);
     }
     
     SECTION("Same property set multiple times") {
@@ -232,12 +199,12 @@ TEST_CASE("SetPropertyValue with multiple properties", "[observable][setproperty
         
         auto sub = obj.PropertyChanged.Subscribe([&](ObservableObject& o, PropertyChangedArgs) {
             auto& testObj = static_cast<TestObservable&>(o);
-            values.push_back(testObj.Age);
+            values.push_back(testObj.Age.Get());
         });
         
-        obj.SetAge(10);
-        obj.SetAge(20);
-        obj.SetAge(30);
+        obj.Age = 10;
+        obj.Age = 20;
+        obj.Age = 30;
         
         REQUIRE(values.size() == 3);
         REQUIRE(values[0] == 10);
@@ -255,20 +222,16 @@ TEST_CASE("SetPropertyValue with multiple properties", "[observable][setproperty
             changeCount++;
         });
         
-        bool r1 = obj.SetAge(20);  // Change
-        bool r2 = obj.SetAge(20);  // No change
-        bool r3 = obj.SetAge(30);  // Change
-        bool r4 = obj.SetAge(30);  // No change
+        obj.Age = 20;  // Change
+        obj.Age = 20;  // No change
+        obj.Age = 30;  // Change
+        obj.Age = 30;  // No change
         
-        REQUIRE(r1 == true);
-        REQUIRE(r2 == false);
-        REQUIRE(r3 == true);
-        REQUIRE(r4 == false);
         REQUIRE(changeCount == 2);  // Only 2 changes
     }
 }
 
-TEST_CASE("SetPropertyValue with complex types", "[observable][setpropertyvalue][complex]") {
+TEST_CASE("ObservableObject with complex types", "[observable][complex]") {
     SECTION("Vector property") {
         TestObservable obj;
         obj.Numbers = {1, 2, 3};
@@ -278,119 +241,65 @@ TEST_CASE("SetPropertyValue with complex types", "[observable][setpropertyvalue]
             changeCount++;
         });
         
-        bool r1 = obj.SetNumbers(std::vector<int>{4, 5, 6});
-        REQUIRE(r1 == true);
-        REQUIRE(obj.Numbers == std::vector<int>{4, 5, 6});
+        obj.Numbers = std::vector<int>{4, 5, 6};
+        REQUIRE(obj.Numbers.Get() == std::vector<int>{4, 5, 6});
         REQUIRE(changeCount == 1);
         
         // Same value
-        bool r2 = obj.SetNumbers(std::vector<int>{4, 5, 6});
-        REQUIRE(r2 == false);
+        obj.Numbers = std::vector<int>{4, 5, 6};
         REQUIRE(changeCount == 1);
     }
 }
 
-TEST_CASE("SetPropertyValue return value semantics", "[observable][setpropertyvalue][return]") {
-    SECTION("Returns true when value changes") {
-        TestObservable obj;
-        obj.Age = 0;
-        
-        bool result = obj.SetAge(100);
-        REQUIRE(result == true);
-    }
-    
-    SECTION("Returns false when value is same") {
-        TestObservable obj;
-        obj.Age = 100;
-        
-        bool result = obj.SetAge(100);
-        REQUIRE(result == false);
-    }
-    
-    SECTION("Consecutive calls with different values all return true") {
-        TestObservable obj;
-        
-        REQUIRE(obj.SetAge(1) == true);
-        REQUIRE(obj.SetAge(2) == true);
-        REQUIRE(obj.SetAge(3) == true);
-    }
-    
-    SECTION("Can be used in conditional logic") {
-        TestObservable obj;
-        obj.Age = 10;
-        
-        int updateCount = 0;
-        
-        if (obj.SetAge(20)) {
-            updateCount++;
-        }
-        
-        if (obj.SetAge(20)) {
-            updateCount++;  // This won't execute
-        }
-        
-        if (obj.SetAge(30)) {
-            updateCount++;
-        }
-        
-        REQUIRE(updateCount == 2);
-    }
-}
-
-TEST_CASE("SetPropertyValue with zero and edge values", "[observable][setpropertyvalue][edge]") {
+TEST_CASE("ObservableObject with zero and edge values", "[observable][edge]") {
     SECTION("Setting to zero") {
         TestObservable obj;
         obj.Age = 10;
         
-        bool result = obj.SetAge(0);
+        obj.Age = 0;
         
-        REQUIRE(result == true);
-        REQUIRE(obj.Age == 0);
+        REQUIRE(obj.Age.Get() == 0);
     }
     
     SECTION("Setting from zero to zero") {
         TestObservable obj;
         obj.Age = 0;
         
-        bool result = obj.SetAge(0);
+        obj.Age = 0;
         
-        REQUIRE(result == false);
-        REQUIRE(obj.Age == 0);
+        REQUIRE(obj.Age.Get() == 0);
     }
     
     SECTION("Setting empty string") {
         TestObservable obj;
         obj.Name = "NotEmpty";
         
-        bool result = obj.SetName("");
+        obj.Name = "";
         
-        REQUIRE(result == true);
-        REQUIRE(obj.Name == "");
+        REQUIRE(obj.Name.Get() == "");
     }
     
     SECTION("Setting empty string to empty string") {
         TestObservable obj;
         obj.Name = "";
         
-        bool result = obj.SetName("");
+        obj.Name = "";
         
-        REQUIRE(result == false);
-        REQUIRE(obj.Name == "");
+        REQUIRE(obj.Name.Get() == "");
     }
     
     SECTION("Negative values") {
         TestObservable obj;
         obj.Age = 10;
         
-        bool result = obj.SetAge(-5);
+        obj.Age = -5;
         
-        REQUIRE(result == true);
-        REQUIRE(obj.Age == -5);
+        REQUIRE(obj.Age.Get() == -5);
     }
 }
 
-TEST_CASE("SetPropertyValue integration with manual notification", "[observable][setpropertyvalue][integration]") {
-    SECTION("Can mix SetPropertyValue with manual NotifyPropertyChanged") {
+TEST_CASE("ObservableObject integration with manual notification", "[observable][integration]") {
+    SECTION("Property setters use SetPropertyValueAndNotify automatically") {
         TestObservable obj;
         
         std::vector<std::string> notifications;
@@ -399,15 +308,10 @@ TEST_CASE("SetPropertyValue integration with manual notification", "[observable]
             notifications.push_back(args.PropertyName());
         });
         
-        // Use SetPropertyValue
-        obj.SetAge(10);
-        
-        // Manual update with notification
-        obj.Name = "Manual";
-        obj.NotifyPropertyChanged<&TestObservable::Name>();
-        
-        // Use SetPropertyValue again
-        obj.SetBalance(100.0);
+        // All property setters use SetPropertyValueAndNotify
+        obj.Age = 10;
+        obj.Name = "Alice";
+        obj.Balance = 100.0;
         
         REQUIRE(notifications.size() == 3);
         REQUIRE(notifications[0] == "Age");
@@ -416,7 +320,7 @@ TEST_CASE("SetPropertyValue integration with manual notification", "[observable]
     }
 }
 
-TEST_CASE("SetPropertyValue with multiple subscribers", "[observable][setpropertyvalue][subscribers]") {
+TEST_CASE("ObservableObject with multiple subscribers", "[observable][subscribers]") {
     SECTION("All subscribers receive notifications") {
         TestObservable obj;
         
@@ -436,14 +340,14 @@ TEST_CASE("SetPropertyValue with multiple subscribers", "[observable][setpropert
             subscriber3Count++;
         });
         
-        obj.SetAge(42);
+        obj.Age = 42;
         
         REQUIRE(subscriber1Count == 1);
         REQUIRE(subscriber2Count == 1);
         REQUIRE(subscriber3Count == 1);
         
         // Same value - no notifications
-        obj.SetAge(42);
+        obj.Age = 42;
         
         REQUIRE(subscriber1Count == 1);
         REQUIRE(subscriber2Count == 1);
@@ -464,19 +368,19 @@ TEST_CASE("SetPropertyValue with multiple subscribers", "[observable][setpropert
             count2++;
         });
         
-        obj.SetAge(10);
+        obj.Age = 10;
         REQUIRE(count1 == 1);
         REQUIRE(count2 == 1);
         
         sub1.Unsubscribe();
         
-        obj.SetAge(20);
+        obj.Age = 20;
         REQUIRE(count1 == 1);  // Not incremented
         REQUIRE(count2 == 2);  // Still receiving
     }
 }
 
-TEST_CASE("SetPropertyValue performance characteristics", "[observable][setpropertyvalue][performance]") {
+TEST_CASE("ObservableObject performance characteristics", "[observable][performance]") {
     SECTION("Rapid consecutive calls") {
         TestObservable obj;
         
@@ -486,10 +390,10 @@ TEST_CASE("SetPropertyValue performance characteristics", "[observable][setprope
         });
         
         for (int i = 1; i <= 100; ++i) {
-            obj.SetAge(i);
+            obj.Age = i;
         }
         
-        REQUIRE(obj.Age == 100);
+        REQUIRE(obj.Age.Get() == 100);
         REQUIRE(changeCount == 100);
     }
     
@@ -502,10 +406,11 @@ TEST_CASE("SetPropertyValue performance characteristics", "[observable][setprope
         });
         
         for (int i = 0; i < 100; ++i) {
-            obj.SetIsActive(!obj.IsActive);
+            obj.IsActive = !obj.IsActive.Get();
         }
         
         REQUIRE(changeCount == 100);
-        REQUIRE(obj.IsActive == false);  // Started false, toggled even number of times
+        REQUIRE(obj.IsActive.Get() == false);  // Started false, toggled even number of times
     }
 }
+
