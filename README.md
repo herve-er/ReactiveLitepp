@@ -4,7 +4,7 @@
 
 > **Version 1.0.0** — A lightweight C++ library that brings reactive property change notifications to modern C++
 
-ReactiveLitepp provides an elegant, type-safe implementation of reactive programming patterns inspired by .NET's `INotifyPropertyChanged` interface. Build responsive applications with automatic property change notifications, event-driven architectures, and observable objects.
+ReactiveLitepp provides a type-safe implementation of reactive programming patterns inspired by .NET's `INotifyPropertyChanged` interface. Build responsive applications with automatic property change notifications, event-driven architectures, and observable objects.
 
 ---
 
