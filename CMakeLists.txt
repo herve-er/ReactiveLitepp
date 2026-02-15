@@ -1,21 +1,24 @@
 cmake_minimum_required(VERSION 3.14)
 
-project(ReactiveLitepp 
-    VERSION 1.0.0 
+project(ReactiveLitepp
+    VERSION 1.0.0
+    DESCRIPTION "Type-safe reactive programming inspired by INotifyPropertyChanged"
     HOMEPAGE_URL "https://github.com/herve-er/ReactiveLitepp"
-    DESCRIPTION "ReactiveLitepp provides a type-safe implementation of reactive programming patterns inspired by .NET's `INotifyPropertyChanged` interface. Build responsive applications with automatic property change notifications, event-driven architectures, and observable objects."
-    LANGUAGES CXX)
+    LANGUAGES CXX
+)
 
-set(CPACK_PACKAGE_VENDOR "Hervé Eruam")
-
-
+# --------------------------------------------
+# Dependencies
+# --------------------------------------------
 find_package(nameof CONFIG REQUIRED)
 
+# --------------------------------------------
 # Header-only library
+# --------------------------------------------
 add_library(ReactiveLitepp INTERFACE)
 add_library(ReactiveLitepp::ReactiveLitepp ALIAS ReactiveLitepp)
 
-target_include_directories(ReactiveLitepp INTERFACE 
+target_include_directories(ReactiveLitepp INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
@@ -24,54 +27,65 @@ target_compile_features(ReactiveLitepp INTERFACE cxx_std_20)
 
 target_link_libraries(ReactiveLitepp INTERFACE nameof::nameof)
 
-# Install targets
+# --------------------------------------------
+# Install rules
+# --------------------------------------------
 include(GNUInstallDirs)
-
-install(TARGETS ReactiveLitepp
-    EXPORT ReactiveLitepp-targets
-    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-)
 
 install(DIRECTORY include/
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
-install(EXPORT ReactiveLitepp-targets
-    FILE ReactiveLitepp-targets.cmake
-    NAMESPACE ReactiveLitepp::
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ReactiveLitepp
+# Export targets
+install(TARGETS ReactiveLitepp
+    EXPORT ReactiveLiteppTargets
 )
 
-# Create and install package config files
+# --------------------------------------------
+# CMake package config files
+# --------------------------------------------
 include(CMakePackageConfigHelpers)
 
+# Package install directory (vcpkg style)
+set(CONFIG_INSTALL_DIR share/${PROJECT_NAME})
+
 write_basic_package_version_file(
-    "${CMAKE_CURRENT_BINARY_DIR}/ReactiveLitepp-config-version.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config-version.cmake"
     VERSION ${PROJECT_VERSION}
     COMPATIBILITY SameMajorVersion
 )
 
 configure_package_config_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/ReactiveLitepp-config.cmake.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/ReactiveLitepp-config.cmake"
-    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ReactiveLitepp
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/${PROJECT_NAME}-config.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake"
+    INSTALL_DESTINATION ${CONFIG_INSTALL_DIR}
 )
 
+# Install config + version files
 install(FILES
-    "${CMAKE_CURRENT_BINARY_DIR}/ReactiveLitepp-config.cmake"
-    "${CMAKE_CURRENT_BINARY_DIR}/ReactiveLitepp-config-version.cmake"
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ReactiveLitepp
+    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config-version.cmake"
+    DESTINATION ${CONFIG_INSTALL_DIR}
 )
 
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/examples")
+# Install exported targets file
+install(EXPORT ReactiveLiteppTargets
+    FILE ${PROJECT_NAME}-targets.cmake
+    NAMESPACE ReactiveLitepp::
+    DESTINATION ${CONFIG_INSTALL_DIR}
+)
+
+# --------------------------------------------
+# Options
+# --------------------------------------------
+option(BUILD_TESTS "Build tests" OFF)
+option(BUILD_EXAMPLES "Build examples" OFF)
+
+if(BUILD_EXAMPLES AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/examples")
     add_subdirectory(examples)
 endif()
 
-# Option to build tests
-option(BUILD_TESTS "Build tests" ON)
 if(BUILD_TESTS AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests")
     enable_testing()
     add_subdirectory(tests)
 endif()
-
-
