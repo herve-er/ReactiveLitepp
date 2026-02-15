@@ -1,6 +1,6 @@
 ﻿# ReactiveLitepp
 
-[https://img.shields.io/badge/version-1.1.0-blue.svg](https://github.com/herve-er/ReactiveLitepp)
+[![release](https://img.shields.io/github/v/release/herve-er/ReactiveLitepp)](https://github.com/herve-er/ReactiveLitepp/releases)
 
 > **Version 1.0.0** — A lightweight C++ library that brings reactive property change notifications to modern C++
 
