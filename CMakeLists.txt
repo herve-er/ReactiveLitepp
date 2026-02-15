@@ -1,6 +1,14 @@
 cmake_minimum_required(VERSION 3.14)
 
-project(ReactiveLitepp VERSION 1.0.0 LANGUAGES CXX)
+project(ReactiveLitepp 
+    VERSION 1.0.0 
+    HOMEPAGE_URL "https://github.com/herve-er/ReactiveLitepp"
+    DESCRIPTION "ReactiveLitepp provides a type-safe implementation of reactive programming patterns inspired by .NET's `INotifyPropertyChanged` interface. Build responsive applications with automatic property change notifications, event-driven architectures, and observable objects."
+    LANGUAGES CXX)
+
+set(CPACK_PACKAGE_VENDOR "Hervé Eruam")
+
+
 find_package(nameof CONFIG REQUIRED)
 
 # Header-only library
