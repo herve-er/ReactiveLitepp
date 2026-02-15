@@ -3,17 +3,17 @@ cmake_minimum_required(VERSION 3.14)
 project(ReactiveLitepp VERSION 1.0.0 LANGUAGES CXX)
 find_package(nameof CONFIG REQUIRED)
 
-add_library(ReactiveLitepp
-    "include/ReactiveLitepp/Subscription.h" "src/Subscription.cpp"
-    "include/ReactiveLitepp/ScopedSubscription.h" "src/ScopedSubscription.cpp" 
-    "include/ReactiveLitepp/Property.h" "src/Property.cpp"
-    "include/ReactiveLitepp/ObservableObject.h" "src/ObservableObject.cpp")
+# Header-only library
+add_library(ReactiveLitepp INTERFACE)
 
-target_include_directories(ReactiveLitepp PUBLIC include)
+target_include_directories(ReactiveLitepp INTERFACE 
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
 
-target_compile_features(ReactiveLitepp PUBLIC cxx_std_20)
+target_compile_features(ReactiveLitepp INTERFACE cxx_std_17)
 
-target_link_libraries(ReactiveLitepp PUBLIC nameof::nameof)
+target_link_libraries(ReactiveLitepp INTERFACE nameof::nameof)
 
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/examples")
     add_subdirectory(examples)

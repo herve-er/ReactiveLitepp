@@ -28,8 +28,15 @@ namespace ReactiveLitepp
 		Event<ObservableObject&, PropertyChangedArgs> PropertyChanged;
 
 	protected:
-		void NotifyPropertyChanging(std::string_view propertyName);
-		void NotifyPropertyChanged(std::string_view propertyName);
+		void NotifyPropertyChanging(std::string_view propertyName) {
+			PropertyChangingArgs args = PropertyChangingArgs(std::string(propertyName));
+			PropertyChanging.Notify(*this, args);
+		}
+
+		void NotifyPropertyChanged(std::string_view propertyName) {
+			PropertyChangedArgs args = PropertyChangedArgs(std::string(propertyName));
+			PropertyChanged.Notify(*this, args);
+		}
 
 		template <auto V>
 		auto NotifyPropertyChanging() -> std::enable_if_t<std::is_member_pointer_v<decltype(V)>>
