@@ -1,5 +1,6 @@
 #pragma once
 #include "Event.h"
+#include "Property.h"
 #include <nameof.hpp>
 
 namespace ReactiveLitepp
@@ -47,23 +48,9 @@ namespace ReactiveLitepp
 		}
 
 		template <auto Member, typename T>
-		auto SetPropertyValue(T&& value) -> std::enable_if_t<std::is_member_pointer_v<decltype(Member)>, bool>
+		bool SetPropertyValue(Property<T>& field, const T& value)
 		{
-			auto& field = this->*Member;
-
-			if (field == value)
-				return false;
-			NotifyPropertyChanging<Member>();
-			field = std::forward<T>(value);
-			NotifyPropertyChanged<Member>();
-
-			return true;
-		}
-
-		template <auto Member, typename T>
-		bool SetPropertyValue(T& field, const T& value)
-		{
-			if (field == value)
+			if (field.Get() == value)
 				return false;
 
 			NotifyPropertyChanging<Member>();
