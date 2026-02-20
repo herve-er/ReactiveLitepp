@@ -11,6 +11,7 @@ add_executable(ReactiveLitepp_tests
     test_property.cpp
     test_property_observability.cpp
     test_observable_object.cpp
+    test_observable_collection.cpp
 )
 
 target_link_libraries(ReactiveLitepp_tests PRIVATE 
