@@ -124,6 +124,54 @@ namespace ReactiveLitepp
 		Setter<PropType> _set;              ///< The setter function
 	};
 
+	/**
+	 * @brief A reactive read-only property wrapper that supports custom getter logic
+	 *
+	 * The ReadonlyProperty class provides a way to expose values with custom
+	 * get behavior without allowing mutation.
+	 *
+	 * @tparam PropType The type of the property value
+	 */
+	template<typename PropType>
+	class ReadonlyProperty {
+	public:
+		using value_type = PropType;
+
+		/**
+		 * @brief Constructs a ReadonlyProperty with a custom getter function
+		 * @param get Function to retrieve the property value
+		 */
+		ReadonlyProperty(Getter<PropType> get);
+
+		/**
+		 * @brief Retrieves the current property value
+		 * @return The current value of the property
+		 */
+		PropType Get() const;
+
+		/**
+		 * @brief Implicit conversion operator to the property type
+		 * @return The current value of the property
+		 */
+		operator PropType() const;
+
+		/**
+		 * @brief Equality operator for comparing the property value
+		 */
+		bool operator==(const PropType& value) const;
+
+		/**
+		 * @brief Stream output operator for ReadonlyProperty
+		 */
+		friend std::ostream& operator<<(std::ostream& os, const ReadonlyProperty& prop) {
+			os << prop.Get();
+			return os;
+		}
+
+	private:
+		Getter<PropType> _get;              ///< The getter function
+	};
+
 	// ==========================================
 	// Implementation
 	// ==========================================
@@ -163,6 +211,31 @@ namespace ReactiveLitepp
 
 	template<typename PropType>
 	inline bool Property<PropType>::operator==(const PropType& value) const
+	{
+		return Get() == value;
+	}
+
+	template<typename PropType>
+	ReadonlyProperty<PropType>::ReadonlyProperty(Getter<PropType> get)
+		: _get(std::move(get))
+	{
+	}
+
+	template<typename PropType>
+	PropType ReadonlyProperty<PropType>::Get() const
+	{
+		if (_get) return _get();
+		else throw;
+	}
+
+	template<typename PropType>
+	ReadonlyProperty<PropType>::operator PropType() const
+	{
+		return Get();
+	}
+
+	template<typename PropType>
+	inline bool ReadonlyProperty<PropType>::operator==(const PropType& value) const
 	{
 		return Get() == value;
 	}

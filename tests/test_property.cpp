@@ -2,6 +2,7 @@
 #include <ReactiveLitepp/Property.h>
 #include <string>
 #include <sstream>
+#include <type_traits>
 
 using namespace ReactiveLitepp;
 
@@ -205,6 +206,31 @@ TEST_CASE("Property stream output operator", "[property][output]") {
         std::ostringstream oss;
         oss << prop;
         REQUIRE(oss.str() == "Test");
+    }
+}
+
+TEST_CASE("ReadonlyProperty basics", "[property][readonly]") {
+    SECTION("Getter-only access and conversion") {
+        int value = 7;
+        ReadonlyProperty<int> prop([&]() { return value; });
+
+        REQUIRE(prop.Get() == 7);
+        REQUIRE(prop == 7);
+        int converted = prop;
+        REQUIRE(converted == 7);
+    }
+
+    SECTION("Stream output") {
+        std::string value = "ReadOnly";
+        ReadonlyProperty<std::string> prop([&]() { return value; });
+
+        std::ostringstream oss;
+        oss << prop;
+        REQUIRE(oss.str() == "ReadOnly");
+    }
+
+    SECTION("Not assignable from value type") {
+        REQUIRE_FALSE(std::is_assignable_v<ReadonlyProperty<int>&, int>);
     }
 }
 
