@@ -218,4 +218,61 @@ namespace ReactiveLitepp
 
 		container_type _items;
 	};
+
+	template<typename T>
+	class ReadonlyObservableCollection
+	{
+	public:
+		using collection_type = ObservableCollection<T>;
+		using value_type = typename collection_type::value_type;
+		using container_type = typename collection_type::container_type;
+		using size_type = typename collection_type::size_type;
+		using difference_type = typename collection_type::difference_type;
+		using reference = typename collection_type::reference;
+		using const_reference = typename collection_type::const_reference;
+		using pointer = typename collection_type::pointer;
+		using const_pointer = typename collection_type::const_pointer;
+		using iterator = typename collection_type::iterator;
+		using const_iterator = typename collection_type::const_iterator;
+		using reverse_iterator = typename collection_type::reverse_iterator;
+		using const_reverse_iterator = typename collection_type::const_reverse_iterator;
+		using ChangeType = typename collection_type::ChangeType;
+		using CollectionChangingArgs = typename collection_type::CollectionChangingArgs;
+		using CollectionChangedArgs = typename collection_type::CollectionChangedArgs;
+
+		ReadonlyProperty<size_type> Count;
+
+		explicit ReadonlyObservableCollection(collection_type& collection)
+			: _collection(&collection)
+			, Count([this]() { return _collection->size(); })
+		{
+		}
+
+		// capacity helpers
+		bool empty() const noexcept { return _collection->empty(); }
+		size_type size() const noexcept { return _collection->size(); }
+		size_type capacity() const noexcept { return _collection->capacity(); }
+
+		// element access
+		const_reference operator[](size_type pos) const { return (*_collection)[pos]; }
+		const_reference at(size_type pos) const { return _collection->at(pos); }
+		const_reference front() const { return _collection->front(); }
+		const_reference back() const { return _collection->back(); }
+
+		// iterators
+		const_iterator begin() const noexcept { return _collection->begin(); }
+		const_iterator cbegin() const noexcept { return _collection->cbegin(); }
+		const_iterator end() const noexcept { return _collection->end(); }
+		const_iterator cend() const noexcept { return _collection->cend(); }
+		const_reverse_iterator rbegin() const noexcept { return _collection->rbegin(); }
+		const_reverse_iterator crbegin() const noexcept { return _collection->crbegin(); }
+		const_reverse_iterator rend() const noexcept { return _collection->rend(); }
+		const_reverse_iterator crend() const noexcept { return _collection->crend(); }
+
+		Event<collection_type&, CollectionChangingArgs>& CollectionChanging() { return _collection->CollectionChanging; }
+		Event<collection_type&, CollectionChangedArgs>& CollectionChanged() { return _collection->CollectionChanged; }
+
+	private:
+		collection_type* _collection;
+	};
 }

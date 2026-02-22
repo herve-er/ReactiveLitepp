@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include <ReactiveLitepp/ObservableCollection.h>
+#include <type_traits>
 
 using namespace ReactiveLitepp;
 
@@ -162,4 +163,87 @@ TEST_CASE("ObservableCollection iteration matches underlying vector", "[observab
 		sum += *it;
 	}
 	REQUIRE(sum == 6);
+}
+
+TEST_CASE("ReadonlyObservableCollection reflects collection state", "[observable_collection][readonly]") {
+	ObservableCollection<int> coll;
+	ReadonlyObservableCollection<int> view(coll);
+
+	coll.push_back(10);
+	coll.push_back(20);
+
+	REQUIRE(view.size() == 2u);
+	REQUIRE(static_cast<std::size_t>(view.Count) == 2u);
+	REQUIRE(view[0] == 10);
+	REQUIRE(view.at(1) == 20);
+
+	REQUIRE(std::is_same_v<decltype(view[0]), const int&>);
+	REQUIRE(std::is_same_v<decltype(view.begin()), ReadonlyObservableCollection<int>::const_iterator>);
+}
+
+TEST_CASE("ReadonlyObservableCollection forwards events", "[observable_collection][readonly_events]") {
+	ObservableCollection<int> coll;
+	ReadonlyObservableCollection<int> view(coll);
+
+	int changedCalls = 0;
+	auto sub = view.CollectionChanged().Subscribe([&](auto&, const auto&) { changedCalls++; });
+
+	coll.push_back(1);
+	coll.push_back(2);
+
+	REQUIRE(changedCalls == 2);
+}
+
+TEST_CASE("ReadonlyObservableCollection accessors and iteration", "[observable_collection][readonly_access]") {
+	ObservableCollection<int> coll;
+	ReadonlyObservableCollection<int> view(coll);
+
+	REQUIRE(view.empty());
+	coll.push_back(5);
+	coll.push_back(10);
+	coll.push_back(15);
+
+	REQUIRE_FALSE(view.empty());
+	REQUIRE(view.size() == 3u);
+	REQUIRE(view.front() == 5);
+	REQUIRE(view.back() == 15);
+
+	int sum = 0;
+	for (auto v : view)
+	{
+		sum += v;
+	}
+	REQUIRE(sum == 30);
+
+	sum = 0;
+	for (auto it = view.rbegin(); it != view.rend(); ++it)
+	{
+		sum += *it;
+	}
+	REQUIRE(sum == 30);
+}
+
+TEST_CASE("ReadonlyObservableCollection reflects owner changes", "[observable_collection][readonly_owner]") {
+	ObservableCollection<std::string> coll;
+	ReadonlyObservableCollection<std::string> view(coll);
+
+	coll.push_back("alpha");
+	coll.push_back("beta");
+	REQUIRE(view.size() == 2u);
+	REQUIRE(view[1] == "beta");
+
+	coll.erase(coll.begin());
+	REQUIRE(view.size() == 1u);
+	REQUIRE(view.front() == "beta");
+
+	coll.clear();
+	REQUIRE(view.empty());
+}
+
+TEST_CASE("ReadonlyObservableCollection type traits", "[observable_collection][readonly_traits]") {
+	REQUIRE(std::is_same_v<ReadonlyObservableCollection<int>::const_iterator,
+		decltype(std::declval<ReadonlyObservableCollection<int>>().begin())>);
+	REQUIRE(std::is_same_v<ReadonlyObservableCollection<int>::const_reference,
+		decltype(std::declval<ReadonlyObservableCollection<int>>()[0])>);
+	REQUIRE_FALSE(std::is_assignable_v<ReadonlyObservableCollection<int>&, ObservableCollection<int>>);
 }
