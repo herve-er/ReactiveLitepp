@@ -2,107 +2,135 @@
 
 [![release](https://img.shields.io/github/v/release/herve-er/ReactiveLitepp)](https://github.com/herve-er/ReactiveLitepp/releases)
 
-> **Version 1.0.0** — A lightweight C++ library that brings reactive property change notifications to modern C++
+A lightweight C++20 library for reactive property change notifications, inspired by .NET’s `INotifyPropertyChanged`.
 
-ReactiveLitepp provides a type-safe implementation of reactive programming patterns inspired by .NET's `INotifyPropertyChanged` interface. Build responsive applications with automatic property change notifications, event-driven architectures, and observable objects.
+ReactiveLitepp provides **type-safe events**, **reactive properties**, and **observable objects** to help you build responsive applications with minimal boilerplate.
 
 ---
 
-## ✨ Features
+## ✨ Why ReactiveLitepp?
 
-- **🔔 Event System** — Publish/subscribe pattern with type-safe event handlers
-- **📦 Reactive Properties** — Custom getter/setter logic with validation and transformation
-- **👀 Observable Objects** — Automatic property change notifications (`PropertyChanging` / `PropertyChanged`)
-- **🎯 Type-Safe** — Modern C++20 with full template support
-- **🧵 Thread-Safe** — Built-in mutex protection for event handlers
-- **🚀 Header-Only Core** — Easy integration with CMake
-- **♻️ RAII Support** — Scoped subscriptions for automatic cleanup
+ReactiveLitepp brings modern reactive patterns to C++ in a clean, header-only design.
+
+* 🔔 **Event System** — Type-safe publish/subscribe with scoped (RAII) subscriptions
+* 📦 **Reactive Properties** — Custom getter/setter logic with validation and transformation
+* 👀 **Observable Objects** — Automatic `PropertyChanging` / `PropertyChanged` notifications
+* 📚 **Observable Collections** — Track collection mutations with change events
+* 🎯 **Modern C++20** — Fully templated and type-safe
+* 🧵 **Thread-Safe** — Built-in mutex protection for event handlers
+* 🚀 **Header-Only Core** — Drop-in integration with any build system
 
 ---
 
 ## 📦 Installation
 
-### Option 1: Manual Installation (No Package Manager Required)
+ReactiveLitepp depends on the header-only [`nameof`](https://github.com/Neargye/nameof) library.
 
-Since **both ReactiveLitepp and nameof are header-only**, you can use them by simply adding include paths:
+You can integrate it in several ways:
 
-**Step 1: Get the dependencies**
+---
+
+### 1️⃣ Standalone (Header-Only)
+
+Clone both repositories and include their headers in your project.
+
 ```bash
-# Clone nameof (header-only dependency)
+# Clone nameof (dependency)
 git clone https://github.com/Neargye/nameof.git
 
 # Clone ReactiveLitepp
 git clone https://github.com/herve-er/ReactiveLitepp.git
 ```
 
-**Step 2: Option A - Using CMake**
+### CMake Example
+
 ```cmake
 cmake_minimum_required(VERSION 3.14)
-project(YourProject)
+project(YourProject LANGUAGES CXX)
 
-# Add include directories
-include_directories(
+add_executable(your_app main.cpp)
+
+target_compile_features(your_app PRIVATE cxx_std_20)
+
+target_include_directories(your_app PRIVATE
     path/to/nameof/include
     path/to/ReactiveLitepp/include
 )
-
-add_executable(your_app main.cpp)
-target_compile_features(your_app PRIVATE cxx_std_20)
 ```
 
-**Step 2: Option B - Direct compiler flags**
+### Direct Compiler Usage
+
 ```bash
-# g++ or clang++
+# g++ / clang++
 g++ main.cpp -std=c++20 \
     -Ipath/to/nameof/include \
     -Ipath/to/ReactiveLitepp/include \
     -o your_app
 
 # MSVC
-cl /std:c++20 /EHsc /Ipath\to\nameof\include /Ipath\to\ReactiveLitepp\include main.cpp
-```
-
-**Step 3: Include in your code**
-```cpp
-#include <nameof.hpp>
-#include <ReactiveLitepp/Event.h>
-#include <ReactiveLitepp/Property.h>
-#include <ReactiveLitepp/ObservableObject.h>
+cl /std:c++20 /EHsc ^
+   /Ipath\to\nameof\include ^
+   /Ipath\to\ReactiveLitepp\include ^
+   main.cpp
 ```
 
 ---
 
-### Option 2: Using vcpkg (Recommended)
+### 2️⃣ Using vcpkg (Maintainer Registry)
+
+ReactiveLitepp is available through the maintainer vcpkg registry.
+
+Add this to your `vcpkg-configuration.json`:
+
+```json
+{
+  "registries": [
+    {
+      "kind": "artifact",
+      "location": "https://github.com/microsoft/vcpkg-ce-catalog/archive/refs/heads/main.zip",
+      "name": "microsoft"
+    },
+    {
+      "kind": "git",
+      "repository": "https://github.com/herve-er/vcpkg-registery",
+      "baseline": "HEAD",
+      "packages": ["reactivelitepp"]
+    }
+  ]
+}
+```
+
+Install:
 
 ```bash
-vcpkg install nameof
+vcpkg install reactivelitepp
 ```
 
-Then include ReactiveLitepp in your `CMakeLists.txt`:
+Use in CMake:
 
 ```cmake
-find_package(nameof CONFIG REQUIRED)
-add_subdirectory(ReactiveLitepp)
-target_link_libraries(your_target PRIVATE ReactiveLitepp)
+find_package(reactivelitepp CONFIG REQUIRED)
+
+add_executable(your_app main.cpp)
+target_link_libraries(your_app PRIVATE reactivelitepp::reactivelitepp)
 ```
 
 ---
 
-### Option 3: Building with CMake (For Development)
+### 3️⃣ Building the Repository (Development)
 
 ```bash
 git clone https://github.com/herve-er/ReactiveLitepp.git
 cd ReactiveLitepp
-mkdir build 
-cd build
-cmake ..
-cmake --build .
+cmake -B build -S .
+cmake --build build
 ```
 
-**Requirements:**
-- C++20 compatible compiler
-- CMake 3.14+
-- [`nameof`](https://github.com/Neargye/nameof) library (auto-fetched via vcpkg)
+**Requirements**
+
+* C++20 compatible compiler
+* CMake 3.14+
+* `nameof` (automatically pulled via vcpkg for dev builds)
 
 ---
 
@@ -112,297 +140,170 @@ cmake --build .
 #include <ReactiveLitepp/Event.h>
 #include <ReactiveLitepp/Property.h>
 #include <ReactiveLitepp/ObservableObject.h>
+#include <ReactiveLitepp/ObservableCollection.h>
 
 using namespace ReactiveLitepp;
+```
 
-// Simple event
+---
+
+## 🔔 Events
+
+```cpp
 Event<std::string> messageEvent;
+
 auto sub = messageEvent.Subscribe([](const std::string& msg) {
     std::cout << "Received: " << msg << "\n";
 });
-messageEvent.Notify("Hello, World!");
 
-// Reactive property with validation
+messageEvent.Notify("Hello, World!");
+```
+
+* Type-safe handlers
+* Thread-safe notifications
+* RAII subscription cleanup
+
+---
+
+## 📦 Properties
+
+```cpp
 int value = 0;
+
 Property<int> score(
     [&]() { return value; },
-    [&](int& newValue) { 
-        value = std::clamp(newValue, 0, 100); 
-    }
+    [&](int& newValue) { value = std::clamp(newValue, 0, 100); }
 );
-score = 150;  // Automatically clamped to 100
+
+score = 150;  // Clamped to 100
 ```
+
+Reactive properties allow:
+
+* Custom getter logic
+* Custom setter logic
+* Validation and transformation
+* Seamless assignment syntax
 
 ---
 
-## 📚 Core Components
-
-### 1. **Event<Args...>**
-
-Type-safe publish/subscribe event system with support for multiple subscribers.
+## 🔒 Read-Only Properties
 
 ```cpp
-Event<std::string, int> dataEvent;
+int versionValue = 1;
+ReadonlyProperty<int> Version([&]() { return versionValue; });
 
-auto sub = dataEvent.Subscribe([](const std::string& name, int value) {
-    std::cout << name << ": " << value << "\n";
+std::cout << Version << "\n"; // 1
+// Version = 2; // ❌ Compile error
+```
+
+Read-only properties expose values safely without allowing modification.
+
+---
+
+## 📚 ObservableCollection
+
+`ObservableCollection<T>` wraps a `std::vector<T>` and raises:
+
+* `CollectionChanging`
+* `CollectionChanged`
+
+It also provides a read-only `Count` property.
+
+```cpp
+ObservableCollection<std::string> items;
+
+items.CollectionChanged.Subscribe([](auto&, auto args) {
+    std::cout << "New count: " << args.NewCount << "\n";
 });
 
-dataEvent.Notify("Temperature", 23);
-sub.Unsubscribe();  // Manual cleanup
+items.push_back("Coffee");
+items.push_back("Tea");
+items.erase(items.begin());
 ```
 
-**RAII-style scoped subscriptions:**
+---
+
+### 🔍 ReadonlyObservableCollection
+
+`ReadonlyObservableCollection<T>` provides a read-only view over an existing `ObservableCollection<T>`.
+
+It supports:
+
+* Iteration
+* Indexing
+* `Count` property
+* Change event subscription
+
+But prevents all modifications at compile time.
 
 ```cpp
-{
-    auto scopedSub = dataEvent.SubscribeScoped([](auto name, auto val) {
-        // Handle event
-    });
-} // Automatically unsubscribes when scope ends
-```
+ObservableCollection<int> numbers;
+ReadonlyObservableCollection<int> readonlyView(numbers);
 
----
-
-### 2. **Property\<T>**
-
-Reactive property wrapper with custom getter/setter logic.
-
-```cpp
-// Backing field required
-std::string nameValue = "Alice";
-
-Property<std::string> name(
-    [&]() { return nameValue; },           // Getter
-    [&](std::string& value) {              // Setter
-        nameValue = value; 
-    }
-);
-
-// Natural usage
-name = "Bob";                   // Uses operator=
-std::string n = name;           // Implicit conversion
-std::cout << name << "\n";      // Stream output
-```
-
-**With validation:**
-
-```cpp
-int ageValue = 0;
-Property<int> age(
-    [&]() { return ageValue; },
-    [&](int& value) {
-        if (value < 0 || value > 120) {
-            std::cout << "Invalid age!\n";
-            return;  // Reject invalid values
-        }
-        ageValue = value;
-    }
-);
-```
-
----
-# ReactiveLitepp
-
-[![release](https://img.shields.io/github/v/release/herve-er/ReactiveLitepp)](https://github.com/herve-er/ReactiveLitepp/releases)
-
-> **Version 1.0.0** — A lightweight C++ library that brings reactive property change notifications to modern C++
-
-ReactiveLitepp provides an elegant, type-safe implementation of reactive programming patterns inspired by .NET's `INotifyPropertyChanged` interface. Build responsive applications with automatic property change notifications, event-driven architectures, and observable objects.
-
----
-
-## ✨ Features
-
-- **🔔 Event System** — Publish/subscribe pattern with type-safe event handlers
-- **📦 Reactive Properties** — Custom getter/setter logic with validation and transformation
-- **👀 Observable Objects** — Automatic property change notifications (`PropertyChanging` / `PropertyChanged`)
-- **🎯 Type-Safe** — Modern C++20 with full template support
-- **🧵 Thread-Safe** — Built-in mutex protection for event handlers
-- **🚀 Header-Only Core** — Easy integration with CMake
-- **♻️ RAII Support** — Scoped subscriptions for automatic cleanup
-
----
-
-## 📦 Installation
-
-### Option 1: Manual Installation (No Package Manager Required)
-
-Since **both ReactiveLitepp and nameof are header-only**, you can use them by simply adding include paths:
-
-**Step 1: Get the dependencies**
-```bash
-# Clone nameof (header-only dependency)
-git clone https://github.com/Neargye/nameof.git
-
-# Clone ReactiveLitepp
-git clone https://github.com/herve-er/ReactiveLitepp.git
-```
-
-**Step 2: Option A - Using CMake**
-```cmake
-cmake_minimum_required(VERSION 3.14)
-project(YourProject)
-
-# Add include directories
-include_directories(
-    path/to/nameof/include
-    path/to/ReactiveLitepp/include
-)
-
-add_executable(your_app main.cpp)
-target_compile_features(your_app PRIVATE cxx_std_20)
-```
-
-**Step 2: Option B - Direct compiler flags**
-```bash
-# g++ or clang++
-g++ main.cpp -std=c++20 \
-    -Ipath/to/nameof/include \
-    -Ipath/to/ReactiveLitepp/include \
-    -o your_app
-
-# MSVC
-cl /std:c++20 /EHsc /Ipath\to\nameof\include /Ipath\to\ReactiveLitepp\include main.cpp
-```
-
-**Step 3: Include in your code**
-```cpp
-#include <nameof.hpp>
-#include <ReactiveLitepp/Event.h>
-#include <ReactiveLitepp/Property.h>
-#include <ReactiveLitepp/ObservableObject.h>
-```
-
----
-
-### Option 2: Using vcpkg (Recommended)
-
-```bash
-vcpkg install nameof
-```
-
-Then include ReactiveLitepp in your `CMakeLists.txt`:
-
-```cmake
-find_package(nameof CONFIG REQUIRED)
-add_subdirectory(ReactiveLitepp)
-target_link_libraries(your_target PRIVATE ReactiveLitepp)
-```
-
----
-
-### Option 3: Building with CMake (For Development)
-
-```bash
-git clone https://github.com/herve-er/ReactiveLitepp.git
-cd ReactiveLitepp
-mkdir build 
-cd build
-cmake ..
-cmake --build .
-```
-
-**Requirements:**
-- C++20 compatible compiler
-- CMake 3.14+
-- [`nameof`](https://github.com/Neargye/nameof) library (auto-fetched via vcpkg)
-
----
-
-## 🚀 Quick Start
-
-```cpp
-#include <ReactiveLitepp/Event.h>
-#include <ReactiveLitepp/Property.h>
-#include <ReactiveLitepp/ObservableObject.h>
-
-using namespace ReactiveLitepp;
-
-// Simple event
-Event<std::string> messageEvent;
-auto sub = messageEvent.Subscribe([](const std::string& msg) {
-    std::cout << "Received: " << msg << "\n";
-});
-messageEvent.Notify("Hello, World!");
-
-// Reactive property with validation
-int value = 0;
-Property<int> score(
-    [&]() { return value; },
-    [&](int& newValue) { 
-        value = std::clamp(newValue, 0, 100); 
-    }
-);
-score = 150;  // Automatically clamped to 100
-```
-
----
-
-## 📚 Core Components
-
-### 1. **Event<Args...>**
-
-Type-safe publish/subscribe event system with support for multiple subscribers.
-
-```cpp
-Event<std::string, int> dataEvent;
-
-auto sub = dataEvent.Subscribe([](const std::string& name, int value) {
-    std::cout << name << ": " << value << "\n";
+readonlyView.CollectionChanged().Subscribe([](auto&, auto args) {
+    std::cout << "Collection changed: "
+              << args.NewCount << " items\n";
 });
 
-dataEvent.Notify("Temperature", 23);
-sub.Unsubscribe();  // Manual cleanup
-```
+numbers.push_back(10);
+numbers.push_back(20);
 
-**RAII-style scoped subscriptions:**
+std::cout << "Count: " << readonlyView.Count << "\n";   // 2
+std::cout << "First: " << readonlyView.front() << "\n"; // 10
 
-```cpp
-{
-    auto scopedSub = dataEvent.SubscribeScoped([](auto name, auto val) {
-        // Handle event
-    });
-} // Automatically unsubscribes when scope ends
+// readonlyView.push_back(30); // ❌ Compile error
+// readonlyView.clear();       // ❌ Compile error
 ```
 
 ---
 
-### 2. **Property\<T>**
+## 📚 Examples
 
-Reactive property wrapper with custom getter/setter logic.
+A complete demo application is available in:
 
-```cpp
-// Backing field required
-std::string nameValue = "Alice";
-
-Property<std::string> name(
-    [&]() { return nameValue; },           // Getter
-    [&](std::string& value) {              // Setter
-        nameValue = value; 
-    }
-);
-
-// Natural usage
-name = "Bob";                   // Uses operator=
-std::string n = name;           // Implicit conversion
-std::cout << name << "\n";      // Stream output
+```
+examples/main.cpp
 ```
 
-**With validation:**
+It demonstrates:
 
-```cpp
-int ageValue = 0;
-Property<int> age(
-    [&]() { return ageValue; },
-    [&](int& value) {
-        if (value < 0 || value > 120) {
-            std::cout << "Invalid age!\n";
-            return;  // Reject invalid values
-        }
-        ageValue = value;
-    }
-);
+* Event subscriptions and scoped subscriptions
+* Reactive properties (including read-only patterns)
+* `ObservableObject` with property change notifications
+* `ObservableCollection` operations (add/remove/insert/clear)
+* `ReadonlyObservableCollection` usage
+* A real-world shopping cart example
+
+Build and run:
+
+```bash
+cmake -B build -S .
+cmake --build build
+./build/examples/ReactiveLitepp_examples
 ```
 
 ---
+
+## ✅ Tests
+
+The test suite uses Catch2 and is located under `tests/`.
+
+To build and run:
+
+```bash
+cmake -B build -S . \
+  -DCMAKE_TOOLCHAIN_FILE=<path-to-vcpkg>/scripts/buildsystems/vcpkg.cmake
+
+cmake --build build
+cd build && ctest --output-on-failure
+```
+
+See `tests/README.md` for additional details.
+
+---
+
+## 📜 License
+
+Licensed under the MIT License.
+See `LICENSE` for full details.

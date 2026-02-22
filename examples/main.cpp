@@ -6,6 +6,7 @@
 #include <ReactiveLitepp/Event.h>
 #include <ReactiveLitepp/Property.h>
 #include <ReactiveLitepp/ObservableObject.h>
+#include <ReactiveLitepp/ObservableCollection.h>
 
 using namespace ReactiveLitepp;
 
@@ -175,6 +176,17 @@ void DemonstrateProperties() {
 	percentage = 50;
 	percentage = 150;  // Auto-clamped
 	percentage = -20;  // Auto-clamped
+
+	// 2.5 Read-only property
+	std::cout << "\n--- 2.5 Read-only Property ---\n";
+	int readOnlyValue = 42;
+	ReadonlyProperty<int> readOnly(
+		[&]() { return readOnlyValue; }
+	);
+
+	std::cout << "  Read-only value: " << readOnly << "\n";
+	readOnlyValue = 100;
+	std::cout << "  After backing value update: " << readOnly << "\n";
 }
 
 // ============================================================================
@@ -290,7 +302,7 @@ void DemonstrateObservableObject() {
 	// 3.3 SetPropertyValueAndNotify only fires events when value actually changes
 	std::cout << "\n--- 3.3 SetPropertyValueAndNotify (Smart Change Detection) ---\n";
 	person.SetAge(30);  // Same value - no events
-	person.SetAge(31);  // Different value - events fire
+	person.SetAge(31);  // Different value - events
 
 	// 3.4 Multiple property changes
 	std::cout << "\n--- 3.4 Multiple Property Changes ---\n";
@@ -305,7 +317,110 @@ void DemonstrateObservableObject() {
 }
 
 // ============================================================================
-// SECTION 4: Real-World Example - Shopping Cart
+// SECTION 4: ObservableCollection - Collection Change Notifications
+// ============================================================================
+
+void DemonstrateObservableCollection() {
+	std::cout << "\n" << std::string(80, '=') << "\n";
+	std::cout << "SECTION 4: ObservableCollection - Collection Change Notifications\n";
+	std::cout << std::string(80, '=') << "\n\n";
+
+	// 4.1 Basic ObservableCollection usage
+	std::cout << "--- 4.1 Basic ObservableCollection ---\n";
+	ObservableCollection<std::string> items;
+
+	// Subscribe to collection changes
+	auto changingSub = items.CollectionChanging.Subscribe(
+		[](ObservableCollection<std::string>& coll, ObservableCollection<std::string>::CollectionChangingArgs args) {
+			std::cout << "  [CHANGING] About to change collection (Old count: " << args.OldCount 
+				<< " -> New count: " << args.NewCount << ")\n";
+		}
+	);
+
+	auto changedSub = items.CollectionChanged.Subscribe(
+		[](ObservableCollection<std::string>& coll, ObservableCollection<std::string>::CollectionChangedArgs args) {
+			std::cout << "  [CHANGED] Collection changed (Count: " << args.NewCount << ")\n";
+		}
+	);
+
+	// 4.2 Adding items
+	std::cout << "\n--- 4.2 Adding Items ---\n";
+	items.push_back("Coffee");
+	items.push_back("Tea");
+	items.emplace_back("Juice");
+
+	std::cout << "  Items in collection: ";
+	for (const auto& item : items) {
+		std::cout << item << " ";
+	}
+	std::cout << "\n";
+
+	// 4.3 Read-only Count property
+	std::cout << "\n--- 4.3 Read-only Count Property ---\n";
+	std::cout << "  Count: " << items.Count << "\n";
+	std::cout << "  Is empty: " << (items.empty() ? "Yes" : "No") << "\n";
+
+	// 4.4 Removing items
+	std::cout << "\n--- 4.4 Removing Items ---\n";
+	items.erase(items.begin());
+	std::cout << "  After erase, items: ";
+	for (const auto& item : items) {
+		std::cout << item << " ";
+	}
+	std::cout << "\n";
+
+	// 4.5 Inserting items
+	std::cout << "\n--- 4.5 Inserting Items ---\n";
+	items.insert(items.begin() + 1, "Soda");
+	std::cout << "  After insert, items: ";
+	for (const auto& item : items) {
+		std::cout << item << " ";
+	}
+	std::cout << "\n";
+
+	// 4.6 Clearing the collection
+	std::cout << "\n--- 4.6 Clearing Collection ---\n";
+	items.clear();
+	std::cout << "  After clear, count: " << items.Count << "\n";
+
+	// 4.7 ReadonlyObservableCollection
+	std::cout << "\n--- 4.7 ReadonlyObservableCollection ---\n";
+	ObservableCollection<int> numbers;
+	ReadonlyObservableCollection<int> readonlyView(numbers);
+
+	std::cout << "  Creating a readonly view of the collection...\n";
+
+	// Subscribe to events through the readonly view
+	auto readonlyChangedSub = readonlyView.CollectionChanged().Subscribe(
+		[](ObservableCollection<int>& coll, ObservableCollection<int>::CollectionChangedArgs args) {
+			std::cout << "  [READONLY VIEW] Collection changed (Count: " << args.NewCount << ")\n";
+		}
+	);
+
+	// Modify the underlying collection
+	std::cout << "  Modifying underlying collection:\n";
+	numbers.push_back(10);
+	numbers.push_back(20);
+	numbers.push_back(30);
+
+	// Access through readonly view
+	std::cout << "  Accessing through readonly view:\n";
+	std::cout << "    Count: " << readonlyView.Count << "\n";
+	std::cout << "    Items: ";
+	for (auto num : readonlyView) {
+		std::cout << num << " ";
+	}
+	std::cout << "\n";
+	std::cout << "    First: " << readonlyView.front() << ", Last: " << readonlyView.back() << "\n";
+	std::cout << "    Item at index 1: " << readonlyView[1] << "\n";
+
+	// Demonstrate read-only nature (compile-time safety)
+	std::cout << "  Note: ReadonlyObservableCollection prevents modifications\n";
+	std::cout << "        (e.g., no push_back, clear, erase methods available)\n";
+}
+
+// ============================================================================
+// SECTION 5: Real-World Example - Shopping Cart
 // ============================================================================
 
 class ShoppingCart : public ObservableObject {
@@ -367,7 +482,7 @@ private:
 
 void DemonstrateRealWorldExample() {
 	std::cout << "\n" << std::string(80, '=') << "\n";
-	std::cout << "SECTION 4: Real-World Example - Shopping Cart\n";
+	std::cout << "SECTION 5: Real-World Example - Shopping Cart\n";
 	std::cout << std::string(80, '=') << "\n\n";
 
 	ShoppingCart cart;
@@ -406,16 +521,16 @@ void DemonstrateRealWorldExample() {
 }
 
 // ============================================================================
-// SECTION 5: Advanced Patterns
+// SECTION 6: Advanced Patterns
 // ============================================================================
 
 void DemonstrateAdvancedPatterns() {
 	std::cout << "\n" << std::string(80, '=') << "\n";
-	std::cout << "SECTION 5: Advanced Patterns\n";
+	std::cout << "SECTION 6: Advanced Patterns\n";
 	std::cout << std::string(80, '=') << "\n\n";
 
-	// 5.1 Computed Properties
-	std::cout << "--- 5.1 Computed Properties ---\n";
+	// 6.1 Computed Properties
+	std::cout << "--- 6.1 Computed Properties ---\n";
 
 	double widthValue = 10.0;
 	double heightValue = 5.0;
@@ -438,8 +553,8 @@ void DemonstrateAdvancedPatterns() {
 	area = width * height;  // Recompute
 	std::cout << "  After width change: " << area << "\n";
 
-	// 5.2 Property Dependency Chain
-	std::cout << "\n--- 5.2 Property Dependency Chain ---\n";
+	// 6.2 Property Dependency Chain
+	std::cout << "\n--- 6.2 Property Dependency Chain ---\n";
 	int baseValue = 10;
 
 	Property<int> base(
@@ -458,8 +573,8 @@ void DemonstrateAdvancedPatterns() {
 	derived = 100;
 	std::cout << "  After derived=100: Base: " << base << ", Derived: " << derived << "\n";
 
-	// 5.3 Event Broadcasting
-	std::cout << "\n--- 5.3 Event Broadcasting ---\n";
+	// 6.3 Event Broadcasting
+	std::cout << "\n--- 6.3 Event Broadcasting ---\n";
 	Event<std::string> logger;
 
 	// Multiple logging destinations
@@ -491,6 +606,7 @@ int main() {
 		DemonstrateEvents();
 		DemonstrateProperties();
 		DemonstrateObservableObject();
+		DemonstrateObservableCollection();
 		DemonstrateRealWorldExample();
 		DemonstrateAdvancedPatterns();
 
