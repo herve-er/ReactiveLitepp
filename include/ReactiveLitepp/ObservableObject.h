@@ -8,7 +8,7 @@ namespace ReactiveLitepp
 	struct PropertyChangeArgs {
 	public:
 		PropertyChangeArgs(std::string propertyName) : _propertyName(propertyName) {}
-		std::string PropertyName() { return _propertyName; }
+		std::string PropertyName() const { return _propertyName; }
 
 	private:
 		std::string _propertyName = "";
